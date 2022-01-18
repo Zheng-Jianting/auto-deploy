@@ -1,0 +1,76 @@
+import Vue from 'vue'
+import {
+  Message,
+  MessageBox,
+  Button,
+  Row,
+  Col,
+  Menu,
+  MenuItem,
+  Submenu,
+  Header,
+  Container,
+  Aside,
+  Main,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  Icon,
+  Dialog,
+  Form,
+  FormItem,
+  Input,
+  Card,
+  Popconfirm,
+  Breadcrumb,
+  BreadcrumbItem,
+  Select,
+  Option,
+  Table,
+  TableColumn,
+  Switch,
+  Upload,
+  Pagination,
+  Tag,
+  Checkbox,
+  Link,
+  Scrollbar,
+  Progress
+} from 'element-ui'
+Vue.prototype.$message = Message
+Vue.prototype.$confirm = MessageBox.confirm
+
+Vue.use(Button)
+Vue.use(Row)
+Vue.use(Col)
+Vue.use(Menu)
+Vue.use(MenuItem)
+Vue.use(Submenu)
+Vue.use(Header)
+Vue.use(Container)
+Vue.use(Aside)
+Vue.use(Main)
+Vue.use(Dropdown)
+Vue.use(DropdownItem)
+Vue.use(DropdownMenu)
+Vue.use(Icon)
+Vue.use(Dialog)
+Vue.use(Form)
+Vue.use(FormItem)
+Vue.use(Input)
+Vue.use(Card)
+Vue.use(Popconfirm)
+Vue.use(Breadcrumb)
+Vue.use(BreadcrumbItem)
+Vue.use(Select)
+Vue.use(Option)
+Vue.use(Table)
+Vue.use(TableColumn)
+Vue.use(Switch)
+Vue.use(Upload)
+Vue.use(Pagination)
+Vue.use(Tag)
+Vue.use(Checkbox)
+Vue.use(Link)
+Vue.use(Scrollbar)
+Vue.use(Progress)
