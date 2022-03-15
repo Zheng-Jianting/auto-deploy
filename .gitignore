@@ -25,3 +25,5 @@ hs_err_pid*
 front-end/node_modules/**
 back-end/bug.txt
 back-end/note.txt
+
+.gitignore
