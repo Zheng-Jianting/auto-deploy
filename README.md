@@ -1,251 +1,165 @@
-### 采集工具自动部署系统
+## Java 程序自动化部署和运行日志采集系统
 
+### 背景
 
+日志采集工具基于插桩技术，能动态地采集使用 Java 语言开发的软件系统的运行时日志。日志采集工具由 agent 和 server 两部分组成，分别对应于 agent-config.xml 和 config.xml 两个配置文件
 
-#### 1. 系统简介
+在使用日志采集工具采集一个软件系统的运行日志时，首先需要部署该软件系统，然后人为修改 agent-config.xml 和 config.xml 两个配置文件，随后启动 server，设置 java agent 参数并运行测试用例，关闭 server 后获得该测试用例的运行时日志
 
-##### 	本系统旨在简化使用 log_agent.jar 和 log_server.jar 等日志采集工具采集应用运行时日志的流程
+一方面，日志采集工具的使用流程比较繁琐；另一方面，当采集的项目数量较多时，运行时日志是使用哪个配置文件采集的并不明确。因此，本系统希望能构建一个集项目管理、服务器管理、应用部署、日志采集于一体的日志采集工具自动部署系统。使用户无需了解日志采集工具的具体使用流程，便能简便地采集软件系统的运行时日志
 
-##### 	采集一个测试用例的流程有以下步骤：
+### 采集工具使用流程
 
-##### 	(1) 部署应用，确保应用能够正常运行
+在开发本系统之前，采集一个测试用例的运行时日志有以下步骤：
 
-##### 	(2) 修改配置文件
+1. 部署应用程序，确保测试用例能够正常运行
 
-##### 		  在 agent-config.xml 配置文件中的 \<include>\</include> 标签中添加需要插装的包名
+2. 修改配置文件
 
-```xml
-<?xml version="1.0" encoding="ISO-8859-1" ?>
-<config>
-	<!-- Target server to steam log events to -->
-	<logserver>
-		<host>localhost</host>
-		<port>9123</port>
-        <type>tcp</type>
-	</logserver>
+   在 agent-config.xml 配置文件中的 \<include>\</include> 标签中添加需要插桩的包名
 
-	<!-- Application node identification -->
-	<nodeid>
-		<application>Log4j</application>
-		<tier>Log4j</tier>
-		<node>Node</node>
-	</nodeid>
+   ```xml
+   <?xml version="1.0" encoding="ISO-8859-1" ?>
+   <config>
+   	<!-- Target server to steam log events to -->
+   	<logserver>
+   		<host>localhost</host>
+   		<port>9123</port>
+           <type>tcp</type>
+   	</logserver>
+   
+   	<!-- Application node identification -->
+   	<nodeid>
+   		<application>Log4j</application>
+   		<tier>Log4j</tier>
+   		<node>Node</node>
+   	</nodeid>
+   
+   	<!-- Code transformation rules configuration -->
+   	<transformation-rules>
+   		<!-- Add logging to custom pointcuts -->
+   		<method-pointcut>
+   			<enabled>true</enabled>
+   			<include>org.apache.log4j.config.*</include>
+   			<include>org.apache.log4j.helpers.*</include>
+   			<include>org.apache.log4j.jdbc.*</include>
+   			<include>org.apache.log4j.jmx.*</include>
+   			<include>org.apache.log4j.net.*</include>
+   			<trace-constructor>true</trace-constructor>
+   			<trace-params>true</trace-params>
+   		</method-pointcut>
+   
+   		<thread-call-pointcut>
+   			<enabled>true</enabled>
+   			<include>org.apache.log4j.config.*</include>
+   			<include>org.apache.log4j.helpers.*</include>
+   			<include>org.apache.log4j.jdbc.*</include>
+   			<include>org.apache.log4j.jmx.*</include>
+   			<include>org.apache.log4j.net.*</include>
+   			<call-pattern>java.lang.Thread.start()</call-pattern>
+   			<trace-catch>false</trace-catch>
+   		</thread-call-pointcut> 
+   
+   		<!-- Add logging to Socket connect and close -->
+   		<socket>
+   			<enabled>true</enabled>
+   		</socket>
+   
+   		<!-- Add logging to SocketChannel connect -->
+   		<socket-channel>
+   			<enabled>false</enabled> <!-- Not properly investigated -->
+   		</socket-channel>
+   
+   		<!-- Add logging to javax Servlet joinpoints -->
+   		<servlet>
+   			<enabled>true</enabled>
+   			<includes>
+   				<include>javax.servlet.*</include>
+   			</includes>
+   		</servlet>
+   	</transformation-rules>
+   </config>
+   ```
 
-	<!-- Code transformation rules configuration -->
-	<transformation-rules>
-		<!-- Add logging to custom pointcuts -->
-		<method-pointcut>
-			<enabled>true</enabled>
-			<include>org.apache.log4j.config.*</include>
-			<include>org.apache.log4j.helpers.*</include>
-			<include>org.apache.log4j.jdbc.*</include>
-			<include>org.apache.log4j.jmx.*</include>
-			<include>org.apache.log4j.net.*</include>
-			<trace-constructor>true</trace-constructor>
-			<trace-params>true</trace-params>
-		</method-pointcut>
+   在 config.xml 配置文件中的 \<file>\</file> 标签中修改采集日志文件名
 
-		<thread-call-pointcut>
-			<enabled>true</enabled>
-			<include>org.apache.log4j.config.*</include>
-			<include>org.apache.log4j.helpers.*</include>
-			<include>org.apache.log4j.jdbc.*</include>
-			<include>org.apache.log4j.jmx.*</include>
-			<include>org.apache.log4j.net.*</include>
-			<call-pattern>java.lang.Thread.start()</call-pattern>
-			<trace-catch>false</trace-catch>
-		</thread-call-pointcut> 
+   ```xml
+   <?xml version="1.0" encoding="ISO-8859-1" ?>
+   <config>
+   	<server>
+   		<port>9123</port>
+   		<type>tcp</type>
+   	</server>
+   	<output>
+   	    <logfile>
+   	        <enabled>true</enabled>
+   			<file>log.txt</file>
+   	    </logfile>
+   	</output>
+   	<internal>
+   		<capacity>
+   			<comm-buffer>100</comm-buffer>
+   			<case-track>100</case-track>
+   			<trace-events>10024</trace-events>
+   		</capacity>
+   	</internal>
+   </config>
+   ```
 
-		<!-- Add logging to Socket connect and close -->
-		<socket>
-			<enabled>true</enabled>
-		</socket>
+3. 启动 log_server.jar
 
-		<!-- Add logging to SocketChannel connect -->
-		<socket-channel>
-			<enabled>false</enabled> <!-- Not properly investigated -->
-		</socket-channel>
+   ```shell
+   java -jar log_server.jar
+   ```
 
-		<!-- Add logging to javax Servlet joinpoints -->
-		<servlet>
-			<enabled>true</enabled>
-			<includes>
-				<include>javax.servlet.*</include>
-			</includes>
-		</servlet>
-	</transformation-rules>
-</config>
-```
+4. 运行测试用例
 
+   ```shell
+   java -javaagent:./log_agent.jar=./agent-config.xml useCase
+   ```
 
+5. 杀死 log_server.jar 进程，得到采集日志
 
-##### 		  在 config.xml 配置文件中的 \<file>\</file> 标签中修改采集日志文件名
+### 系统整体处理流程
 
-```xml
-<?xml version="1.0" encoding="ISO-8859-1" ?>
-<config>
-	<server>
-		<port>9123</port>
-		<type>tcp</type>
-	</server>
-	<output>
-	    <logfile>
-	        <enabled>true</enabled>
-			<file>log.txt</file>
-	    </logfile>
-	</output>
-	<internal>
-		<capacity>
-			<comm-buffer>100</comm-buffer>
-			<case-track>100</case-track>
-			<trace-events>10024</trace-events>
-		</capacity>
-	</internal>
-</config>
-```
+本系统主要提供日志采集工具自动部署服务，简化日志采集流程，除此之外，本系统还提供服务器管理以及应用部署服务，这是正式启动日志采集的前置工作。于是从系统处理日志采集任务来看，要将本系统应用在实际的软件开发生产线上，主要由三个有序的处理流程，分别是服务器的管理流程、应用部署流程、日志采集流程
 
-##### 	(3) 启动 log_server.jar
+1. **服务器管理流程**
+   - 项目增添：在系统中进行项目增添，记录项目的基本信息
+   - 服务器增添：在系统中增添服务器信息，包括IP地址、端口、用户名、密码。系统根据以上信息可以测试服务器的连通状态，若服务器能够正常连通，系统将暂存的采集工具上传至该服务器
+2. **应用部署流程**
+   - 包名解析：在系统中选择应用并上传。系统将暂存并解压应用，通过递归遍历项目的目录结构并结合正则表达式生成包名解析结构文件，其中记录了该应用能够插桩的包名
+   - 上传应用：在系统中提供部署节点、部署目录信息。系统将据此将暂存的应用上传至所选部署节点的部署目录上
+   - 执行部署脚本：在系统中选择部署脚本并编辑。系统将上传脚本至所选部署节点，并执行
+3. **日志采集的流程**
+   - 采集任务增添：在系统中增添采集任务，需要提供采集任务名称、在该项目的应用列表中选择采集应用及其部署节点、勾选插桩包名、提供日志文件名称以及需要采集的测试用例类名
+   - 自动生成配置文件：系统将根据增添采集任务时的信息自动生成 agent 的配置文件 agent-config.xml，以及 server 的配置文件 config.xml
+   - 执行日志采集流程：将 start_server.sh 脚本上传至部署节点并执行，启动采集工具 server 端，搜索测试用例编译后的 .class 文件路径，并执行，最后将 stop_server.sh 脚本上传至部署节点并执行，关闭采集工具 server 端，保存生成的运行时日志
+
+### 部署节点目录结构
 
 ```java
-java -jar log_server.jar
-```
-
-##### 	(4) 运行测试用例
-
-```java
-java -javaagent:./log_agent.jar=./agent-config.xml useCase
-```
-
-##### 	(5) 杀死 log_server.jar 进程，得到采集日志
-
-
-
-#### 2. 项目管理模块
-
-##### 用户新建一个项目仅需提供项目名和描述信息，项目之间相互独立，每个项目都有与之对应的服务器管理模块、应用部署模块、日志采集模块
-
-
-
-#### 3. 服务器管理模块
-
-##### 	在该模块中，有以下功能：
-
-##### 	(1) 添加服务器
-
-##### 	记录服务器的以下信息：IP、端口、用户名、密码、采集工具、连通状态、创建时间
-
-##### 	(2) 测试连通状态
-
-##### 	(3) 上传采集工具 log_agent，log_server
-
-##### 	(4) 删除服务器
-
-
-
-#### 4. 应用部署模块
-
-##### 	在该模块中，用户操作如下：
-
-##### 	(1) 首先选择需要上传的应用 ( .zip 格式，其它格式类似，正在实现 )
-
-##### 	(2) 然后从该项目的服务器列表中选择部署节点
-
-##### 	(3) 填写部署目录
-
-##### 	(4) 编写部署脚本 (可选)
-
-
-
-##### 	自动部署系统在这个过程中完成的工作：
-
-##### 	(1) 将用户上传的应用上传至部署节点的部署目录上，并解压
-
-##### 	(2) 解压用户上传的应用，并递归遍历生成该应用可以插装的包名文件，从而在日志采集模块中，用户可以通过勾选需要插装的包名自动生成 agent-config.xml 配置文件
-
-##### 	(3) 将部署脚本上传至部署节点，并执行
-
-
-
-#### 5. 日志采集模块
-
-##### 	在该模块中，用户操作如下：
-
-##### 	(1) 填写采集任务名称
-
-##### 	(2) 选择需要采集的应用 ( 通过应用名_部署节点唯一标识 )
-
-##### 	(3) 勾选需要插装的包名 ( 默认全部勾选 )
-
-##### (4) 填写采集日志文件名 ( 默认为 采集任务名称.txt )
-
-##### 	(5) 填写采集的测试用例类名
-
-##### (6) 点击采集按钮，启动采集
-
-##### (7) 下载日志
-
-
-
-##### 	自动部署系统在这个过程中完成的工作：
-
-##### (1) 依据用户勾选的需要插装的包名以及日志文件名，自动生成 agent-config.xml 和 config.xml 配置文件，且用户可以预览
-
-##### (2) 上传 agent-config.xml 和 config.xml 至部署节点
-
-##### (3) 执行 start_server.sh 脚本，启动 log_server
-
-```shell
-#!/bin/bash
-screen_name=$"collect-task"
-screen -dmS $screen_name
-cmd=$"cd /home/$1/autodeploy/tool/; setsid java -jar log_server-0.0.4-SNAPSHOT.jar >nohup.txt 2>&1 &";
-screen -x -S $screen_name -p 0 -X stuff "$cmd"
-screen -x -S $screen_name -p 0 -X stuff $'\n'
-```
-
-##### (4) 运行测试用例
-
-```shell
-java -javaagent:/home/root/autodeploy/tool/log_agent.jar
-			   =/home/root/autodeploy/config/useCase/agent-config.xml useCase
-```
-
-##### (5) 执行 stop_server.sh 脚本，杀死 log_server 进程
-
-```shell
-#!/bin/bash
-screen_name=$"collect-task"
-screen -X -S $screen_name quit
-```
-
-##### (6) 保存日志，以供用户下载
-
-
-
-#### 6. 部署节点目录结构
-
-```
 采集工具存储目录：
 /home/server.username/autodeploy/tool/
 ```
 
-```
+```java
 应用存储目录：用户可在应用部署时自定义目录
 推荐存储目录：
 /home/server.username/autodeploy/application/
 ```
 
-```
+```java
 配置文件 ( agent-config.xml config.xml ) 存放目录：
 /home/server.username/autodeploy/config/collect.name/
 ```
 
-```
+```java
 启动和杀死 log_server 的脚本 ( start_server.sh stop_server.sh ) 存放目录：
 /home/server.username/autodeploy/shell/
 ```
 
-```
+```java
 部署脚本存放目录：
 /home/server.username/autodeploy/script/deploy.application_name/
 ```
